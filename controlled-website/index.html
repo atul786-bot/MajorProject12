@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adaptive Store — Controlled Test Target</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="app-header">
+    <div class="container header-container">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">Adaptive Automation Store</span>
+      </div>
+      <div class="badge">Controlled Test Target</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Status Notification Area -->
+    <section class="status-section">
+      <div id="status-message" class="status-box">System ready. Waiting for user interaction.</div>
+    </section>
+
+    <div class="grid-layout">
+      <!-- Section 1: User Authentication -->
+      <section class="card">
+        <h2>1. User Login</h2>
+        <p class="card-desc">Test account credentials for login verification</p>
+        <form id="login-form" onsubmit="return false;">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="Enter username (e.g. testuser)">
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter password">
+          </div>
+          <button type="button" id="login-button" class="btn btn-primary">Login</button>
+        </form>
+      </section>
+
+      <!-- Section 2: Catalog & Product Selection -->
+      <section class="card">
+        <h2>2. Product Selection</h2>
+        <p class="card-desc">Select item and add to shopping cart</p>
+        <div class="form-group">
+          <label for="product-select">Choose Product</label>
+          <select id="product-select" class="form-control">
+            <option value="">-- Select a Product --</option>
+            <option value="Laptop Pro 15">Laptop Pro 15 ($1,299)</option>
+            <option value="Wireless Headphones">Wireless Headphones ($199)</option>
+            <option value="Smartwatch Ultra">Smartwatch Ultra ($349)</option>
+            <option value="4K Monitor 27in">4K Monitor 27in ($499)</option>
+          </select>
+        </div>
+        <button type="button" id="add-cart-button" class="btn btn-secondary">Add to Cart</button>
+      </section>
+
+      <!-- Section 3: Catalog Search -->
+      <section class="card">
+        <h2>3. Product Search</h2>
+        <p class="card-desc">Query product database by keyword</p>
+        <div class="form-group">
+          <label for="search-input">Search Query</label>
+          <input type="text" id="search-input" placeholder="e.g. Headphones, Laptop">
+        </div>
+        <button type="button" id="search-button" class="btn btn-secondary">Search Catalog</button>
+        <div id="search-results" class="results-box">No search performed yet.</div>
+      </section>
+
+      <!-- Section 4: Checkout & Order Placement -->
+      <section class="card">
+        <h2>4. Checkout Form</h2>
+        <p class="card-desc">Submit customer details to complete order</p>
+        <form id="checkout-form" onsubmit="return false;">
+          <div class="form-group">
+            <label for="checkout-name">Full Name</label>
+            <input type="text" id="checkout-name" placeholder="John Doe">
+          </div>
+          <div class="form-group">
+            <label for="checkout-email">Email Address</label>
+            <input type="email" id="checkout-email" placeholder="john@example.com">
+          </div>
+          <button type="button" id="checkout-button" class="btn btn-success">Complete Order</button>
+        </form>
+      </section>
+
+      <!-- Section 5: Healing & Robustness Testing Section -->
+      <section class="card healing-card">
+        <h2>5. Healing Test Element</h2>
+        <p class="card-desc">Target element used for Healenium self-healing demonstration</p>
+        <div class="healing-demo">
+          <p>Alternative Action Trigger (dynamic ID target):</p>
+          <button type="button" id="add-cart-button-new" class="btn btn-healing" data-action="healed-cart-add">
+            Add to Cart (Healed Target)
+          </button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="container">
+      <p>AI-Driven Adaptive Test Automation Project &bull; Controlled Environment Website</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

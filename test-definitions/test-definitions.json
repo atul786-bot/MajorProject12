@@ -1,0 +1,255 @@
+[
+  {
+    "testId": "TC-WEB-001",
+    "name": "Page Load Verification",
+    "targetUrl": "http://localhost:8080/index.html",
+    "description": "Verifies that the controlled test application loads properly and displays ready status.",
+    "steps": [
+      {
+        "step": 1,
+        "action": "OPEN",
+        "locatorType": "url",
+        "locator": "http://localhost:8080/index.html",
+        "value": ""
+      },
+      {
+        "step": 2,
+        "action": "VERIFY",
+        "locatorType": "id",
+        "locator": "status-message",
+        "value": "Page loaded successfully"
+      }
+    ]
+  },
+  {
+    "testId": "TC-WEB-002",
+    "name": "User Authentication",
+    "targetUrl": "http://localhost:8080/index.html",
+    "description": "Tests user login by filling credentials and clicking login button.",
+    "steps": [
+      {
+        "step": 1,
+        "action": "OPEN",
+        "locatorType": "url",
+        "locator": "http://localhost:8080/index.html",
+        "value": ""
+      },
+      {
+        "step": 2,
+        "action": "TYPE",
+        "locatorType": "id",
+        "locator": "username",
+        "value": "testuser"
+      },
+      {
+        "step": 3,
+        "action": "TYPE",
+        "locatorType": "id",
+        "locator": "password",
+        "value": "secret123"
+      },
+      {
+        "step": 4,
+        "action": "CLICK",
+        "locatorType": "id",
+        "locator": "login-button",
+        "value": ""
+      },
+      {
+        "step": 5,
+        "action": "VERIFY",
+        "locatorType": "id",
+        "locator": "status-message",
+        "value": "Logged in successfully"
+      }
+    ]
+  },
+  {
+    "testId": "TC-WEB-003",
+    "name": "Product Dropdown Selection",
+    "targetUrl": "http://localhost:8080/index.html",
+    "description": "Selects a product from the dropdown list.",
+    "steps": [
+      {
+        "step": 1,
+        "action": "OPEN",
+        "locatorType": "url",
+        "locator": "http://localhost:8080/index.html",
+        "value": ""
+      },
+      {
+        "step": 2,
+        "action": "CLICK",
+        "locatorType": "css",
+        "locator": "#product-select option[value='Wireless Headphones']",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "testId": "TC-WEB-004",
+    "name": "Add Product to Cart",
+    "targetUrl": "http://localhost:8080/index.html",
+    "description": "Selects product and clicks Add to Cart button.",
+    "steps": [
+      {
+        "step": 1,
+        "action": "OPEN",
+        "locatorType": "url",
+        "locator": "http://localhost:8080/index.html",
+        "value": ""
+      },
+      {
+        "step": 2,
+        "action": "CLICK",
+        "locatorType": "css",
+        "locator": "#product-select option[value='Laptop Pro 15']",
+        "value": ""
+      },
+      {
+        "step": 3,
+        "action": "CLICK",
+        "locatorType": "id",
+        "locator": "add-cart-button",
+        "value": ""
+      },
+      {
+        "step": 4,
+        "action": "VERIFY",
+        "locatorType": "id",
+        "locator": "status-message",
+        "value": "Added \"Laptop Pro 15\" to shopping cart!"
+      }
+    ]
+  },
+  {
+    "testId": "TC-WEB-005",
+    "name": "Catalog Search Query",
+    "targetUrl": "http://localhost:8080/index.html",
+    "description": "Types search keyword and verifies query results.",
+    "steps": [
+      {
+        "step": 1,
+        "action": "OPEN",
+        "locatorType": "url",
+        "locator": "http://localhost:8080/index.html",
+        "value": ""
+      },
+      {
+        "step": 2,
+        "action": "TYPE",
+        "locatorType": "id",
+        "locator": "search-input",
+        "value": "Headphones"
+      },
+      {
+        "step": 3,
+        "action": "CLICK",
+        "locatorType": "id",
+        "locator": "search-button",
+        "value": ""
+      },
+      {
+        "step": 4,
+        "action": "VERIFY",
+        "locatorType": "id",
+        "locator": "search-results",
+        "value": "Found 3 items matching \"Headphones\""
+      }
+    ]
+  },
+  {
+    "testId": "TC-WEB-006",
+    "name": "Checkout Order Form",
+    "targetUrl": "http://localhost:8080/index.html",
+    "description": "Fills customer checkout details and submits order.",
+    "steps": [
+      {
+        "step": 1,
+        "action": "OPEN",
+        "locatorType": "url",
+        "locator": "http://localhost:8080/index.html",
+        "value": ""
+      },
+      {
+        "step": 2,
+        "action": "TYPE",
+        "locatorType": "id",
+        "locator": "checkout-name",
+        "value": "Alice Smith"
+      },
+      {
+        "step": 3,
+        "action": "TYPE",
+        "locatorType": "id",
+        "locator": "checkout-email",
+        "value": "alice@example.com"
+      },
+      {
+        "step": 4,
+        "action": "CLICK",
+        "locatorType": "id",
+        "locator": "checkout-button",
+        "value": ""
+      },
+      {
+        "step": 5,
+        "action": "VERIFY",
+        "locatorType": "id",
+        "locator": "status-message",
+        "value": "Order placed successfully"
+      }
+    ]
+  },
+  {
+    "testId": "TC-WEB-007",
+    "name": "Self-Healing Element Test",
+    "targetUrl": "http://localhost:8080/index.html",
+    "description": "Triggers dynamic/healed target element to demonstrate Healenium self-healing capability.",
+    "steps": [
+      {
+        "step": 1,
+        "action": "OPEN",
+        "locatorType": "url",
+        "locator": "http://localhost:8080/index.html",
+        "value": ""
+      },
+      {
+        "step": 2,
+        "action": "CLICK",
+        "locatorType": "id",
+        "locator": "add-cart-button-old",
+        "value": ""
+      },
+      {
+        "step": 3,
+        "action": "VERIFY",
+        "locatorType": "id",
+        "locator": "status-message",
+        "value": "Action triggered via Healed Target Element"
+      }
+    ]
+  },
+  {
+    "testId": "TC-WEB-008",
+    "name": "Intentional Failure Test",
+    "targetUrl": "http://localhost:8080/index.html",
+    "description": "Attempts to interact with a non-existent element to verify error handling and failure recording.",
+    "steps": [
+      {
+        "step": 1,
+        "action": "OPEN",
+        "locatorType": "url",
+        "locator": "http://localhost:8080/index.html",
+        "value": ""
+      },
+      {
+        "step": 2,
+        "action": "CLICK",
+        "locatorType": "id",
+        "locator": "non-existent-button-element",
+        "value": ""
+      }
+    ]
+  }
+]

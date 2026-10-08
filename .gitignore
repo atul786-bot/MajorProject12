@@ -24,3 +24,11 @@ automation/results/
 # Runtime/generated backend data
 backend/data/
 backend/controller/mock-executor.js
+new-backend/data/db/*.db
+
+# Trained model cache
+new-ai/models/*.joblib
+
+# Generated AI prediction output
+new-ai/data/adaptive/*.json
+
