@@ -1,7 +1,11 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import pandas as pd
 
-from data_adapter import load_execution_results, convert_to_test_records
-from data_loader import load_data
+from data_adapter import load_m3_execution_history
 
 
 FEATURE_COLUMNS = [
@@ -14,121 +18,127 @@ FEATURE_COLUMNS = [
 ]
 
 
+def _sort_history(rows):
+    """Sort real execution history without changing source timestamp values."""
+
+    history = pd.DataFrame(rows)
+
+    if history.empty:
+        return history
+
+    history["_timestamp_order"] = pd.to_datetime(
+        history["timestamp"],
+        errors="coerce",
+        utc=True,
+    )
+
+    history = history.sort_values(
+        by=["_timestamp_order"],
+        kind="stable",
+        na_position="first",
+    ).drop(
+        columns=["_timestamp_order"]
+    )
+
+    return history
+
+
 def build_features():
-    """Build model features from historical and latest current execution data."""
+    """Build model features directly from verified M3 execution history."""
 
-    historical_data = load_data()
-    execution_data = load_execution_results()
-    current_tests = convert_to_test_records(execution_data)
+    rows = load_m3_execution_history()
 
-    original_count = len(current_tests)
+    if not rows:
+        raise ValueError("No M3 execution history records were found.")
 
-    # Keep ALL historical records for feature calculation.
-    #
-    # Only reduce CURRENT execution results so that there is
-    # one latest execution record per unique test_id.
-    latest_tests = {}
-
-    for test in current_tests:
-        test_id = test["test_id"]
-
-        if test_id not in latest_tests:
-            latest_tests[test_id] = test
-            continue
-
-        existing_timestamp = str(
-            latest_tests[test_id].get("timestamp", "")
-        )
-
-        current_timestamp = str(
-            test.get("timestamp", "")
-        )
-
-        # Keep the latest execution record for this test.
-        if current_timestamp > existing_timestamp:
-            latest_tests[test_id] = test
-
-    current_tests = list(latest_tests.values())
-
-    print(
-        f"Current execution records: {original_count}"
-    )
-
-    print(
-        f"Unique latest test records: {len(current_tests)}"
-    )
+    history = _sort_history(rows)
 
     feature_records = []
 
-    for test in current_tests:
-        test_id = test["test_id"]
+    for test_id, test_history in history.groupby(
+        "testId",
+        sort=False,
+    ):
+        test_history = test_history.copy()
 
-        # IMPORTANT:
-        # Use ALL historical records for this test.
-        history = historical_data[
-            historical_data["test_id"] == test_id
-        ]
+        execution_count = len(test_history)
 
-        if history.empty:
-            print(
-                f"Warning: No historical data found for {test_id}"
-            )
-            continue
-
-        execution_count = len(history)
+        statuses = (
+            test_history["status"]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+        )
 
         failure_count = int(
-            history["next_run_failed"].sum()
+            (statuses == "failed").sum()
         )
 
-        avg_duration = round(
-            history["avg_duration"].mean(),
-            3
+        durations = pd.to_numeric(
+            test_history["duration"],
+            errors="coerce",
         )
 
-        recent_history = history.tail(5)
-
-        recent_failures = int(
-            recent_history["next_run_failed"].sum()
-        )
-
-        healed_count = round(
-            history["healed_count"].mean(),
-            3
-        )
-
-        # Normalize current automation status.
-        current_status = (
-            str(test["status"])
-            .strip()
-            .lower()
-        )
-
-        if current_status in {"passed", "failed"}:
-            # Actual current execution result.
-            last_status = current_status
-
-        elif current_status == "excluded":
-            # The test was not executed.
-            # Use the most recent historical status instead.
-            last_status = (
-                str(history.iloc[-1]["last_status"])
-                .strip()
-                .lower()
+        if durations.isnull().any():
+            raise ValueError(
+                f"Invalid duration found for {test_id}."
             )
 
-        else:
+        avg_duration = round(
+            durations.mean(),
+            3,
+        )
+
+        recent_history = test_history.tail(5)
+
+        recent_statuses = (
+            recent_history["status"]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+        )
+
+        recent_failures = int(
+            (recent_statuses == "failed").sum()
+        )
+
+        healed_values = pd.to_numeric(
+            test_history["healed"],
+            errors="coerce",
+        )
+
+        if healed_values.isnull().any():
+            raise ValueError(
+                f"Invalid healed value found for {test_id}."
+            )
+
+        # Keep the same feature scale used by the existing model.
+        healed_count = round(
+            healed_values.mean(),
+            3,
+        )
+
+        # Excluded is not a pass/fail outcome.
+        # If it is the latest execution, use the latest
+        # previous pass/fail status instead.
+        last_status = None
+
+        for status in reversed(statuses.tolist()):
+            if status in {"passed", "failed"}:
+                last_status = status
+                break
+
+            if status == "excluded":
+                continue
+
             raise ValueError(
                 f"Unsupported test status for {test_id}: "
-                f"{test['status']}. "
-                f"Expected passed, failed, or excluded."
+                f"{status}"
             )
 
         if last_status not in {"passed", "failed"}:
             raise ValueError(
-                f"Invalid historical last_status for {test_id}: "
-                f"{last_status}. "
-                f"Expected passed or failed."
+                f"No valid pass/fail status found for {test_id}."
             )
 
         feature_records.append({
@@ -141,31 +151,22 @@ def build_features():
             "last_status": last_status,
         })
 
-    feature_df = pd.DataFrame(feature_records)
-
-    print(
-        f"Tests processed for prediction: "
-        f"{len(feature_df)}"
-    )
-
-    return feature_df
+    return pd.DataFrame(feature_records)
 
 
 def prepare_model_features(feature_df):
     """Convert feature records into the format expected by the ML model."""
 
-    model_features = feature_df[FEATURE_COLUMNS].copy()
+    model_features = feature_df[
+        FEATURE_COLUMNS
+    ].copy()
 
-    model_features["last_status"] = (
-        model_features["last_status"]
-        .astype(str)
-        .str.strip()
-        .str.lower()
-        .map({
-            "passed": 0,
-            "failed": 1,
-        })
-    )
+    model_features["last_status"] = model_features[
+        "last_status"
+    ].map({
+        "passed": 0,
+        "failed": 1,
+    })
 
     if model_features.isnull().any().any():
         raise ValueError(
@@ -173,3 +174,27 @@ def prepare_model_features(feature_df):
         )
 
     return model_features
+
+
+if __name__ == "__main__":
+
+    features = build_features()
+
+    model_features = prepare_model_features(
+        features
+    )
+
+    print("\nAI Feature Records:")
+    print(
+        features.to_string(index=False)
+    )
+
+    print("\nModel Features:")
+    print(
+        model_features.to_string(index=False)
+    )
+
+    print("\nFeature columns:")
+    print(
+        model_features.columns.tolist()
+    )

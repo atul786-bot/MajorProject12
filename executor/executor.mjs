@@ -1,6 +1,6 @@
 import { By, until } from "selenium-webdriver";
 import { createDriver } from "./driver-factory.mjs";
-import { resolveHealingScore } from "./healing-score.mjs";
+import { resolveHealingScore, getMaxHealingId } from "./healing-score.mjs";
 import config from "./config.mjs";
 
 function resolveByLocator(locatorType, locatorValue) {
@@ -47,6 +47,16 @@ export async function executeDynamicTest(testDefinition, options = {}) {
 
     // Set implicit timeout
     await driver.manage().setTimeouts({ implicit: config.defaultTimeout });
+
+    // Record baseline max healing ID before running test steps
+    let maxHealingIdBefore = 0;
+    if (isHealenium) {
+      try {
+        maxHealingIdBefore = await getMaxHealingId();
+      } catch (err) {
+        maxHealingIdBefore = 0;
+      }
+    }
 
     for (const step of testDefinition.steps) {
       console.log(`[Step ${step.step}] ${step.action} ${step.locatorType || ''}="${step.locator || ''}" value="${step.value || ''}"`);
@@ -120,7 +130,8 @@ export async function executeDynamicTest(testDefinition, options = {}) {
           const scoreInfo = await resolveHealingScore({
             locatorType: step.locatorType,
             locatorValue: step.locator,
-            url: testDefinition.targetUrl
+            url: testDefinition.targetUrl,
+            minHealingId: maxHealingIdBefore
           });
 
           if (scoreInfo.healed) {

@@ -1,0 +1,153 @@
+import { useEffect, useState } from "react";
+import "./App.css";
+
+import Overview from "./components/Overview";
+import TestResults from "./components/TestResults";
+import RiskRanking from "./components/RiskRanking";
+import Execution from "./components/Execution";
+import HealingResults from "./components/HealingResults";
+import ExecutionHistory from "./components/ExecutionHistory";
+import RiskChart from "./charts/RiskChart";
+
+import {
+  getOverview,
+  getTests,
+  getRiskRanking,
+  getExecutionResults,
+  getExecutionHistory,
+} from "./services/api";
+
+function App() {
+  const [overview, setOverview] = useState(null);
+  const [tests, setTests] = useState([]);
+  const [riskRanking, setRiskRanking] = useState([]);
+  const [executionResults, setExecutionResults] = useState([]);
+  const [executionHistory, setExecutionHistory] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialDashboard() {
+      try {
+        const [
+          overviewData,
+          testsData,
+          riskRankingData,
+          executionData,
+          historyData,
+        ] = await Promise.all([
+          getOverview(),
+          getTests(),
+          getRiskRanking(),
+          getExecutionResults(),
+          getExecutionHistory(),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        setOverview(overviewData);
+        setTests(testsData);
+        setRiskRanking(riskRankingData);
+        setExecutionResults(executionData.results || []);
+        setExecutionHistory(historyData);
+        setError("");
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message);
+        }
+      }
+    }
+
+    loadInitialDashboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <div className="dashboard">
+      <div className="dashboard-shell">
+
+        <header className="dashboard-header">
+          <div className="header-copy">
+            <div className="header-eyebrow">
+              Intelligent QA Platform
+            </div>
+
+            <h1 className="header-title">
+              AI-Driven Adaptive Test Automation
+            </h1>
+
+            <p className="header-subtitle">
+              AI-powered test prioritization, execution, risk analysis and
+              healing insights.
+            </p>
+          </div>
+
+          <div className="system-status">
+            <span className="status-dot" />
+            System Active
+          </div>
+        </header>
+
+        {error && (
+          <div className="dashboard-error">
+            <strong>Dashboard error:</strong> {error}
+          </div>
+        )}
+
+        <section className="dashboard-section">
+          <div className="section-heading">
+            <h2 className="section-title">Overview</h2>
+            <span className="section-description">
+              Current automation status
+            </span>
+          </div>
+
+          <div className="dashboard-card">
+            <Overview overview={overview} />
+          </div>
+        </section>
+
+        <div className="dashboard-grid">
+
+          <section className="dashboard-section dashboard-card">
+            <TestResults tests={tests} />
+          </section>
+
+          <section className="dashboard-section dashboard-card">
+            <RiskRanking riskRanking={riskRanking} />
+          </section>
+
+          <section className="dashboard-section dashboard-card">
+            <RiskChart riskRanking={riskRanking} />
+          </section>
+
+          <section className="dashboard-section dashboard-card">
+            <HealingResults tests={tests} />
+          </section>
+
+          <section className="dashboard-section dashboard-grid-wide dashboard-card">
+            <Execution executionResults={executionResults} />
+          </section>
+
+          <section className="dashboard-section dashboard-grid-wide dashboard-card">
+            <ExecutionHistory executionHistory={executionHistory} />
+          </section>
+
+        </div>
+
+        <footer className="dashboard-footer">
+          AI-Driven Adaptive Test Automation • Intelligent execution monitoring
+        </footer>
+
+      </div>
+    </div>
+  );
+}
+
+export default App;

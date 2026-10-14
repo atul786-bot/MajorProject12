@@ -1,5 +1,19 @@
+/**
+ * TechMart Electronics — Controlled Website Automation Script
+ * Provides interactive behavior for e-commerce store demonstrations
+ * while maintaining 100% compatibility with automated Selenium & Healenium tests.
+ */
 document.addEventListener('DOMContentLoaded', () => {
   const statusEl = document.getElementById('status-message');
+  const cartCountEl = document.getElementById('cart-count');
+  let cartCount = 0;
+
+  function updateCart(delta = 1) {
+    cartCount = Math.max(0, cartCount + delta);
+    if (cartCountEl) {
+      cartCountEl.textContent = String(cartCount);
+    }
+  }
 
   function setStatus(msg, statusClass = '') {
     if (!statusEl) return;
@@ -7,10 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     statusEl.className = 'status-box ' + statusClass;
   }
 
-  // Initial load notification
+  // 1. Initial Page Load Notification (Verified by TC-WEB-001)
   setStatus('Page loaded successfully. Ready for automation.', 'success');
 
-  // 1. Login Action
+  // 2. User Authentication (Verified by TC-WEB-002)
   const loginBtn = document.getElementById('login-button');
   if (loginBtn) {
     loginBtn.addEventListener('click', () => {
@@ -24,21 +38,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 2. Product Selection & Add to Cart
+  // 3. Product Selection & Add to Cart (Verified by TC-WEB-003 and TC-WEB-004)
   const addCartBtn = document.getElementById('add-cart-button');
   if (addCartBtn) {
     addCartBtn.addEventListener('click', () => {
       const selectEl = document.getElementById('product-select');
       const selectedProduct = selectEl ? selectEl.value : '';
       if (selectedProduct) {
+        updateCart(1);
         setStatus(`Added "${selectedProduct}" to shopping cart!`, 'success');
       } else {
+        updateCart(1);
         setStatus('Added default product to shopping cart!', 'success');
       }
     });
   }
 
-  // 3. Search Catalog
+  // Interactive Product Card "Add to Cart" Buttons
+  const cardAddButtons = document.querySelectorAll('.card-add-btn');
+  cardAddButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const product = btn.getAttribute('data-product');
+      const selectEl = document.getElementById('product-select');
+      if (selectEl && product) {
+        selectEl.value = product;
+      }
+      if (addCartBtn) {
+        addCartBtn.click();
+      }
+    });
+  });
+
+  // 4. Catalog Search (Verified by TC-WEB-005)
   const searchBtn = document.getElementById('search-button');
   if (searchBtn) {
     searchBtn.addEventListener('click', () => {
@@ -57,20 +88,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 4. Checkout Action
+  // 5. Checkout & Order Placement (Verified by TC-WEB-006)
   const checkoutBtn = document.getElementById('checkout-button');
   if (checkoutBtn) {
     checkoutBtn.addEventListener('click', () => {
       const nameInput = document.getElementById('checkout-name');
-      const name = nameInput ? nameInput.value.trim() : 'Customer';
+      const name = nameInput && nameInput.value.trim() ? nameInput.value.trim() : 'Customer';
       setStatus(`Order placed successfully for ${name}! Order #ORD-${Math.floor(1000 + Math.random() * 9000)}`, 'success');
+      cartCount = 0;
+      if (cartCountEl) {
+        cartCountEl.textContent = '0';
+      }
     });
   }
 
-  // 5. Healing Target Action
+  // 6. Healenium Self-Healing Demonstration Target (Verified by TC-WEB-007)
   const healedCartBtn = document.getElementById('add-cart-button-new') || document.getElementById('add-cart-button-old');
   if (healedCartBtn) {
     healedCartBtn.addEventListener('click', () => {
+      updateCart(1);
       setStatus('Action triggered via Healed Target Element (#add-cart-button-new)!', 'healing');
     });
   }

@@ -1,16 +1,18 @@
 import React from "react";
-import { TrendingUp, AlertTriangle } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 
 export default function RiskRanking({ riskRanking }) {
   return (
     <div className="card">
-      <h3 className="card-title"><TrendingUp size={20} className="text-amber-400" /> AI Risk Ranking & Test Prioritization</h3>
-      <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '1rem' }}>
-        Test failure probabilities calculated by Logistic Regression model using past failure history, duration, and healing frequency.
+      <h3 className="card-title"><TrendingUp size={16} /> AI Risk Ranking</h3>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '10px' }}>
+        Failure probabilities from the Logistic Regression model based on past failure history, duration, and healing frequency.
       </p>
 
       {(!riskRanking || riskRanking.length === 0) ? (
-        <div style={{ color: '#64748b', fontSize: '0.9rem' }}>No AI predictions available yet. Run the AI pipeline to compute risk rankings.</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '8px 0' }}>
+          No AI predictions available. Run the AI pipeline to compute risk rankings.
+        </div>
       ) : (
         <table>
           <thead>
@@ -26,6 +28,9 @@ export default function RiskRanking({ riskRanking }) {
             {riskRanking.map((r) => {
               const prob = (r.failure_probability * 100).toFixed(1);
               const riskClass = r.risk_level === "HIGH" ? "badge-high" : (r.risk_level === "MEDIUM" ? "badge-medium" : "badge-low");
+              const barColor = r.risk_level === "HIGH"
+                ? 'var(--color-failed)'
+                : (r.risk_level === "MEDIUM" ? 'var(--color-warning)' : 'var(--color-passed)');
 
               return (
                 <tr key={r.test_id}>
@@ -37,22 +42,23 @@ export default function RiskRanking({ riskRanking }) {
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ flex: 1, background: '#0f172a', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ flex: 1, background: 'var(--bg-page)', borderRadius: '3px', height: '5px', overflow: 'hidden', maxWidth: '100px' }}>
                         <div style={{
                           width: `${prob}%`,
                           height: '100%',
-                          background: r.risk_level === 'HIGH' ? '#f43f5e' : (r.risk_level === 'MEDIUM' ? '#f59e0b' : '#10b981')
+                          background: barColor,
+                          borderRadius: '3px'
                         }} />
                       </div>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{prob}%</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{prob}%</span>
                     </div>
                   </td>
                   <td>
                     {r.prediction === 1 ? (
-                      <span style={{ color: '#f43f5e', fontWeight: 600 }}>Likely Fail</span>
+                      <span style={{ color: 'var(--color-failed)', fontWeight: 600, fontSize: '12px' }}>Likely Fail</span>
                     ) : (
-                      <span style={{ color: '#34d399', fontWeight: 600 }}>Likely Pass</span>
+                      <span style={{ color: 'var(--color-passed)', fontWeight: 600, fontSize: '12px' }}>Likely Pass</span>
                     )}
                   </td>
                 </tr>

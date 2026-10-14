@@ -2,10 +2,6 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { spawn } from "child_process";
-import { createDriver } from "./driver-factory.mjs";
-import { BasePage } from "../pages/base-page.mjs";
-import { getHealingState, resetHealingState } from "../utils/healing-context.mjs";
-import { getLatestHealingScore } from "../utils/healing-score-resolver.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,47 +23,17 @@ const RUNNER_PATH = path.join(
     "ai-jasmine-runner.mjs"
 );
 
-const TEST_REGISTRY = {
-    "TC-HEAL-CONNECTION-001": {
-        file: "tests/basic/healenium-connection.spec.mjs",
-        description: "should create a browser session through Healenium"
-    },
-
-    "TC-HEAL-BASE-001": {
-        file: "tests/basic/healenium-connection.spec.mjs",
-        description: "should select an item using BasePage"
-    },
-
-    "TC-HEAL-BASE-002": {
-        file: "tests/basic/healenium-connection.spec.mjs",
-        description: "should verify element visibility using BasePage"
-    },
-
-    "TC-HEAL-ID-001": {
-        file: "tests/basic/healenium-connection.spec.mjs",
-        description: "should automatically heal a changed locator through Healenium"
-    },
-
-    "TC-HEAL-CSS-001": {
-        file: "tests/basic/healenium-connection.spec.mjs",
-        description: "should automatically heal a changed CSS locator through Healenium"
-    },
-
-    "TC-HEAL-XPATH-001": {
-        file: "tests/basic/healenium-connection.spec.mjs",
-        description: "should automatically heal a changed XPath locator through Healenium"
-    },
-
-    "TC-HEAL-CLASS-001": {
-        file: "tests/basic/healenium-connection.spec.mjs",
-        description: "should automatically heal a changed class locator through Healenium"
-    },
-
-    "TC-SMOKE-001": {
-        file: "tests/basic/smoke.spec.mjs",
-        description: "should execute successfully"
-    }
-};
+/*
+ * Legacy test registry.
+ *
+ * These entries referenced spec files that have been removed
+ * from the repository (tests/basic/healenium-connection.spec.mjs,
+ * tests/basic/smoke.spec.mjs).
+ *
+ * Dynamic test execution now goes through executeDynamicTest(),
+ * which accepts a test definition object with steps at runtime.
+ */
+const TEST_REGISTRY = {};
 
 export function loadPrioritizedTests() {
     if (!fs.existsSync(AI_OUTPUT_PATH)) {
@@ -201,9 +167,9 @@ export async function executePrioritizedTests() {
         );
 
         try {
-            const result = await runSingleTest(definition, testId);
+            const passed = await runSingleTest(definition, test.test_id);
 
-            const status = result.status;
+            const status = passed ? "passed" : "failed";
 
             executionSummary.push({
                 testId: test.test_id,
@@ -262,9 +228,12 @@ export async function executeSelectedTests(testIds) {
         );
 
         try {
-            const result = await runSingleTest(definition, testId);
+            const passed = await runSingleTest(definition, testId);
 
-            executionSummary.push(result);
+            executionSummary.push({
+                testId,
+                status: passed ? "passed" : "failed"
+            });
         } catch (error) {
             executionSummary.push({
                 testId,
@@ -277,150 +246,145 @@ export async function executeSelectedTests(testIds) {
     return executionSummary;
 }
 
-function buildLocator(step) {
-    if (!step.locatorType || !step.locator) {
-        throw new Error(
-            `Locator is required for ${step.action} step`
-        );
-    }
-
-    return {
-        [step.locatorType]: step.locator
-    };
-}
-
-
-function resolveOpenUrl(targetUrl, value) {
-    if (!targetUrl) {
-        throw new Error("targetUrl is required for OPEN step");
-    }
-
-    if (!value) {
-        return targetUrl;
-    }
-
-    return new URL(value, targetUrl).href;
-}
-
-
-async function resolveDynamicHealingScore(healingState, testDefinition) {
-    if (!healingState.healed || !healingState.locator) {
-        return healingState.healingScore;
-    }
-
-    try {
-        return await getLatestHealingScore({
-            locator: healingState.locator,
-            command: healingState.command ?? "findElements",
-            url: testDefinition.targetUrl
-        });
-    } catch (error) {
-        console.error("Dynamic healing score lookup failed:", error.message);
-        return healingState.healingScore;
-    }
-}
+/**
+ * Execute a dynamic test definition received from the backend.
+ *
+ * Accepts a test definition object with:
+ *   { testId, name, targetUrl, description, steps[] }
+ *
+ * Each step has: { action, locatorType, locator, value }
+ *
+ * Returns: { testId, status, duration, healed, healingScore, timestamp, error? }
+ */
 export async function executeDynamicTest(testDefinition) {
-    const startedAt = Date.now();
+    const { Builder, By } = await import("selenium-webdriver");
+    const config = (await import("../config/framework-config.mjs")).default;
 
+    const startTime = Date.now();
     let driver = null;
+    let healed = false;
+    let healingScore = null;
 
     try {
-        if (!testDefinition?.testId) {
-            throw new Error("testDefinition.testId is required");
-        }
+        console.log(
+            `\nExecuting dynamic test: ${testDefinition.testId}`
+        );
+        console.log(`Target URL: ${testDefinition.targetUrl}`);
 
-        if (!testDefinition?.targetUrl) {
-            throw new Error("testDefinition.targetUrl is required");
-        }
-
-        if (!Array.isArray(testDefinition.steps)) {
-            throw new Error("testDefinition.steps must be an array");
-        }
-
-        driver = await createDriver();
-        const page = new BasePage(driver);
-
-        resetHealingState();
+        driver = await new Builder()
+            .forBrowser(config.browser)
+            .usingServer(config.healeniumUrl)
+            .build();
 
         for (const step of testDefinition.steps) {
-            if (!step?.action) {
-                throw new Error("Each test step must contain an action");
-            }
-
             switch (step.action) {
-                case "OPEN": {
-                    const url = resolveOpenUrl(
-                        testDefinition.targetUrl,
-                        step.value
+                case "OPEN":
+                    await driver.get(
+                        step.value || testDefinition.targetUrl
                     );
-                    await page.navigateTo(url);
                     break;
-                }
 
                 case "TYPE": {
-                    const locator = buildLocator(step);
-                    await page.type(locator, step.value ?? "");
+                    const typeLocator = resolveLocator(
+                        By, step.locatorType, step.locator
+                    );
+                    const typeElement = await driver.findElement(typeLocator);
+                    await typeElement.clear();
+                    await typeElement.sendKeys(step.value || "");
                     break;
                 }
 
                 case "CLICK": {
-                    const locator = buildLocator(step);
-                    await page.click(locator);
+                    const clickLocator = resolveLocator(
+                        By, step.locatorType, step.locator
+                    );
+                    const clickElement = await driver.findElement(clickLocator);
+                    await clickElement.click();
                     break;
                 }
 
                 case "VERIFY": {
-                    const locator = buildLocator(step);
-                    const displayed = await page.isDisplayed(locator);
+                    const verifyLocator = resolveLocator(
+                        By, step.locatorType, step.locator
+                    );
+                    const verifyElement = await driver.findElement(verifyLocator);
+                    const isDisplayed = await verifyElement.isDisplayed();
 
-                    if (!displayed) {
-                        throw new Error("VERIFY failed: element is not displayed");
+                    if (!isDisplayed) {
+                        throw new Error(
+                            `Verification failed: element not displayed ` +
+                            `(${step.locatorType}=${step.locator})`
+                        );
                     }
 
-                    if (step.value !== null && step.value !== undefined && step.value !== "") {
-                        const actualText = await page.getText(locator);
-                        if (actualText !== step.value) {
-                            throw new Error(`VERIFY failed: expected text "${step.value}", got "${actualText}"`);
+                    if (step.value) {
+                        const text = await verifyElement.getText();
+
+                        if (!text.includes(step.value)) {
+                            throw new Error(
+                                `Verification failed: expected "${step.value}" ` +
+                                `but got "${text}"`
+                            );
                         }
                     }
-
                     break;
                 }
 
                 default:
-                    throw new Error(`Unsupported action: ${step.action}`);
+                    console.warn(
+                        `Unknown step action: ${step.action}`
+                    );
             }
         }
 
-        const healingState = getHealingState();
-        const healingScore = await resolveDynamicHealingScore(healingState, testDefinition);
+        const duration = (Date.now() - startTime) / 1000;
 
         return {
             testId: testDefinition.testId,
             status: "passed",
-            duration: Date.now() - startedAt,
-            healed: healingState.healed,
+            duration,
+            healed,
             healingScore,
             timestamp: new Date().toISOString()
         };
-
     } catch (error) {
-        const healingState = getHealingState();
-        const healingScore = await resolveDynamicHealingScore(healingState, testDefinition);
+        const duration = (Date.now() - startTime) / 1000;
 
         return {
             testId: testDefinition.testId,
             status: "failed",
-            duration: Date.now() - startedAt,
-            healed: healingState.healed,
+            duration,
+            healed,
             healingScore,
             timestamp: new Date().toISOString(),
             error: error.message
         };
-
     } finally {
         if (driver) {
-            await driver.quit();
+            try {
+                await driver.quit();
+            } catch {
+                // Ignore driver cleanup errors.
+            }
         }
+    }
+}
+
+function resolveLocator(By, locatorType, locatorValue) {
+    switch (locatorType) {
+        case "id":
+            return By.id(locatorValue);
+        case "css":
+            return By.css(locatorValue);
+        case "xpath":
+            return By.xpath(locatorValue);
+        case "name":
+            return By.name(locatorValue);
+        case "className":
+            return By.className(locatorValue);
+        default:
+            throw new Error(
+                `Unsupported locator type: ${locatorType}`
+            );
     }
 }

@@ -3,110 +3,238 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Adaptive Store — Controlled Test Target</title>
+  <title>TechMart Electronics — Retail &amp; Supply Store</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <header class="app-header">
-    <div class="container header-container">
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">Adaptive Automation Store</span>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand-area">
+        <a href="#" class="site-logo">TechMart Electronics</a>
+        <span class="site-tagline">Retail &bull; Direct Supply</span>
       </div>
-      <div class="badge">Controlled Test Target</div>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="#products-section" class="nav-link active">Catalog</a>
+        <a href="#special-offers-section" class="nav-link">Clearance</a>
+        <a href="#login-section" class="nav-link">Account</a>
+        <a href="#checkout-section" class="nav-link">Checkout</a>
+      </nav>
+      <div class="header-cart" id="cart-indicator">
+        <span id="cart-icon" class="cart-badge">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          Cart (<span id="cart-count">0</span>)
+        </span>
+      </div>
     </div>
   </header>
 
-  <main class="container">
-    <!-- Status Notification Area -->
-    <section class="status-section">
-      <div id="status-message" class="status-box">System ready. Waiting for user interaction.</div>
-    </section>
+  <!-- Status Notification Banner -->
+  <div class="container status-wrapper">
+    <div id="status-message" class="status-box" role="status" aria-live="polite">Page loaded successfully. Ready for automation.</div>
+  </div>
 
-    <div class="grid-layout">
-      <!-- Section 1: User Authentication -->
-      <section class="card">
-        <h2>1. User Login</h2>
-        <p class="card-desc">Test account credentials for login verification</p>
-        <form id="login-form" onsubmit="return false;">
-          <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" placeholder="Enter username (e.g. testuser)">
+  <!-- Main Store Layout -->
+  <main class="container main-layout">
+
+    <!-- Primary Catalog & Deals Column -->
+    <div class="store-main-column">
+
+      <!-- Catalog Search Section -->
+      <section class="section-panel" aria-labelledby="search-heading">
+        <h2 id="search-heading" class="section-title">Catalog Search</h2>
+        <div class="search-bar">
+          <div class="form-group search-input-group">
+            <label for="search-input" class="sr-only">Search catalog</label>
+            <input type="text" id="search-input" class="form-control" placeholder="Search products by keyword (e.g. Headphones, Laptop)...">
           </div>
-          <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" placeholder="Enter password">
-          </div>
-          <button type="button" id="login-button" class="btn btn-primary">Login</button>
-        </form>
-      </section>
-
-      <!-- Section 2: Catalog & Product Selection -->
-      <section class="card">
-        <h2>2. Product Selection</h2>
-        <p class="card-desc">Select item and add to shopping cart</p>
-        <div class="form-group">
-          <label for="product-select">Choose Product</label>
-          <select id="product-select" class="form-control">
-            <option value="">-- Select a Product --</option>
-            <option value="Laptop Pro 15">Laptop Pro 15 ($1,299)</option>
-            <option value="Wireless Headphones">Wireless Headphones ($199)</option>
-            <option value="Smartwatch Ultra">Smartwatch Ultra ($349)</option>
-            <option value="4K Monitor 27in">4K Monitor 27in ($499)</option>
-          </select>
+          <button type="button" id="search-button" class="btn btn-primary">Search</button>
         </div>
-        <button type="button" id="add-cart-button" class="btn btn-secondary">Add to Cart</button>
-      </section>
-
-      <!-- Section 3: Catalog Search -->
-      <section class="card">
-        <h2>3. Product Search</h2>
-        <p class="card-desc">Query product database by keyword</p>
-        <div class="form-group">
-          <label for="search-input">Search Query</label>
-          <input type="text" id="search-input" placeholder="e.g. Headphones, Laptop">
-        </div>
-        <button type="button" id="search-button" class="btn btn-secondary">Search Catalog</button>
         <div id="search-results" class="results-box">No search performed yet.</div>
       </section>
 
-      <!-- Section 4: Checkout & Order Placement -->
-      <section class="card">
-        <h2>4. Checkout Form</h2>
-        <p class="card-desc">Submit customer details to complete order</p>
-        <form id="checkout-form" onsubmit="return false;">
+      <!-- Products Grid Section -->
+      <section id="products-section" class="section-panel" aria-labelledby="products-heading">
+        <div class="section-header-flex">
+          <div>
+            <h2 id="products-heading" class="section-title" style="margin-bottom:2px; border-bottom:none; padding-bottom:0;">Product Catalog</h2>
+            <p class="section-subtitle">Genuine electronics with manufacturer warranty</p>
+          </div>
+          <span class="stock-badge">In Stock</span>
+        </div>
+
+        <div class="products-grid">
+
+          <!-- Product 1: Laptop Pro 15 -->
+          <article class="product-card">
+            <div class="product-img-box">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#6C757D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="2" y1="20" x2="22" y2="20"></line>
+              </svg>
+              <span class="product-category-tag">Computing</span>
+            </div>
+            <div class="product-info">
+              <h3 class="product-name">Laptop Pro 15</h3>
+              <p class="product-specs">15.6" IPS &bull; 16GB RAM &bull; 512GB SSD</p>
+              <div class="product-action-row">
+                <span class="product-price">$1,299.00</span>
+                <button type="button" class="btn btn-secondary btn-sm card-add-btn" data-product="Laptop Pro 15">Add to Cart</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Product 2: Wireless Headphones -->
+          <article class="product-card">
+            <div class="product-img-box">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#6C757D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+              </svg>
+              <span class="product-category-tag">Audio</span>
+            </div>
+            <div class="product-info">
+              <h3 class="product-name">Wireless Headphones</h3>
+              <p class="product-specs">Active Noise Cancelling &bull; 30h Battery</p>
+              <div class="product-action-row">
+                <span class="product-price">$199.00</span>
+                <button type="button" class="btn btn-secondary btn-sm card-add-btn" data-product="Wireless Headphones">Add to Cart</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Product 3: Smartwatch Ultra -->
+          <article class="product-card">
+            <div class="product-img-box">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#6C757D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="6" y="7" width="12" height="10" rx="3"></rect>
+                <path d="M9 7V3h6v4M9 17v4h6v-4"></path>
+              </svg>
+              <span class="product-category-tag">Wearables</span>
+            </div>
+            <div class="product-info">
+              <h3 class="product-name">Smartwatch Ultra</h3>
+              <p class="product-specs">AMOLED &bull; Heart Rate &bull; GPS Tracking</p>
+              <div class="product-action-row">
+                <span class="product-price">$349.00</span>
+                <button type="button" class="btn btn-secondary btn-sm card-add-btn" data-product="Smartwatch Ultra">Add to Cart</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Product 4: 4K Monitor 27in -->
+          <article class="product-card">
+            <div class="product-img-box">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#6C757D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              <span class="product-category-tag">Displays</span>
+            </div>
+            <div class="product-info">
+              <h3 class="product-name">4K Monitor 27in</h3>
+              <p class="product-specs">3840x2160 UHD &bull; 60Hz &bull; USB-C Hub</p>
+              <div class="product-action-row">
+                <span class="product-price">$499.00</span>
+                <button type="button" class="btn btn-secondary btn-sm card-add-btn" data-product="4K Monitor 27in">Add to Cart</button>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- Direct Product Selector Bar (Functional, tested by TC-WEB-003 and TC-WEB-004) -->
+        <div class="add-to-cart-bar">
+          <div class="form-group select-control-group">
+            <label for="product-select">Quick Order Selector</label>
+            <select id="product-select" class="form-control">
+              <option value="">-- Choose a product --</option>
+              <option value="Laptop Pro 15">Laptop Pro 15 ($1,299)</option>
+              <option value="Wireless Headphones">Wireless Headphones ($199)</option>
+              <option value="Smartwatch Ultra">Smartwatch Ultra ($349)</option>
+              <option value="4K Monitor 27in">4K Monitor 27in ($499)</option>
+            </select>
+          </div>
+          <button type="button" id="add-cart-button" class="btn btn-primary">Add to Cart</button>
+        </div>
+      </section>
+
+      <!-- Special Offers / Clearance Section (Contains Healenium healing target) -->
+      <section id="special-offers-section" class="section-panel offers-section" aria-labelledby="offers-heading">
+        <h2 id="offers-heading" class="section-title">Special Clearance Offers</h2>
+        <p class="section-desc">Warehouse clearance deals with limited promotional inventory.</p>
+        <div class="clearance-banner">
+          <div class="clearance-details">
+            <span class="clearance-badge">Featured Bundle</span>
+            <h3 class="clearance-title">Studio Monitor &amp; Audio Kit Combo</h3>
+            <p class="clearance-desc">Factory-certified bundle package including 4K display and noise-cancelling headphones.</p>
+            <p class="clearance-pricing"><span class="price-current">$549.00</span> <span class="price-original">$698.00</span></p>
+          </div>
+          <div class="clearance-action">
+            <button type="button" id="add-cart-button-new" class="btn btn-primary" data-action="healed-cart-add">
+              Add to Cart (Featured)
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Store Sidebar Column: Login & Checkout -->
+    <aside class="store-sidebar-column">
+
+      <!-- Customer Login Section -->
+      <section id="login-section" class="section-panel" aria-labelledby="login-heading">
+        <h2 id="login-heading" class="section-title">Customer Login</h2>
+        <p class="section-desc">Sign in to access your saved cart and orders.</p>
+        <form id="login-form" onsubmit="return false;" class="sidebar-form">
           <div class="form-group">
-            <label for="checkout-name">Full Name</label>
-            <input type="text" id="checkout-name" placeholder="John Doe">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" class="form-control" placeholder="Enter username (e.g. testuser)">
           </div>
           <div class="form-group">
-            <label for="checkout-email">Email Address</label>
-            <input type="email" id="checkout-email" placeholder="john@example.com">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" class="form-control" placeholder="Enter password">
           </div>
-          <button type="button" id="checkout-button" class="btn btn-success">Complete Order</button>
+          <button type="button" id="login-button" class="btn btn-primary btn-block">Sign In</button>
         </form>
       </section>
 
-      <!-- Section 5: Healing & Robustness Testing Section -->
-      <section class="card healing-card">
-        <h2>5. Healing Test Element</h2>
-        <p class="card-desc">Target element used for Healenium self-healing demonstration</p>
-        <div class="healing-demo">
-          <p>Alternative Action Trigger (dynamic ID target):</p>
-          <button type="button" id="add-cart-button-new" class="btn btn-healing" data-action="healed-cart-add">
-            Add to Cart (Healed Target)
-          </button>
-        </div>
+      <!-- Order Checkout Section -->
+      <section id="checkout-section" class="section-panel" aria-labelledby="checkout-heading">
+        <h2 id="checkout-heading" class="section-title">Order Checkout</h2>
+        <p class="section-desc">Enter customer billing details to finalize your order.</p>
+        <form id="checkout-form" onsubmit="return false;" class="sidebar-form">
+          <div class="form-group">
+            <label for="checkout-name">Full Name</label>
+            <input type="text" id="checkout-name" name="checkout-name" class="form-control" placeholder="Alice Smith">
+          </div>
+          <div class="form-group">
+            <label for="checkout-email">Email Address</label>
+            <input type="email" id="checkout-email" name="checkout-email" class="form-control" placeholder="alice@example.com">
+          </div>
+          <button type="button" id="checkout-button" class="btn btn-success btn-block">Place Order</button>
+        </form>
       </section>
-    </div>
+
+    </aside>
+
   </main>
 
-  <footer class="app-footer">
-    <div class="container">
-      <p>AI-Driven Adaptive Test Automation Project &bull; Controlled Environment Website</p>
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>&copy; 2026 TechMart Electronics &bull; Small Business Retail &amp; Electronics Supply</p>
+      <p class="footer-note">All test-critical automation hooks active for regression and self-healing evaluation.</p>
     </div>
   </footer>
 

@@ -4,6 +4,93 @@
 
 ---
 
+## 2026-10-12 — Bug Fix: TC-WEB-007 Self-Healing Detection & Execution Results Table
+
+**PHASE:** Bug Fix & Healing Verification  
+**OBJECTIVE:** Resolve issue where TC-WEB-007 passed but reported `Healed = No` in Execution History, and fix Execution Controls table rendering blank Test ID/Status cells with duration shown as `"s"`.
+
+**ROOT CAUSE IDENTIFIED:**
+1. **Healenium Score Resolution Auth Failure:** When the backend server was started from `new-backend/`, `executor/config.mjs` ran `dotenv.config()` without path resolution. `process.env.HEALENIUM_DB_PASSWORD` was empty string `""`. In `executor/healing-score.mjs`, the PostgreSQL pool connection to port 5432 failed with password authentication error, caught silently and returning `{ healed: false, healingScore: null }`. While Healenium proxy on port 8085 successfully recovered the element at runtime, the executor could not read the healing confirmation from Postgres.
+2. **Result Object Unwrapping in UI:** `POST /api/execution` returned single-test execution as `{ results: { testId, status, duration, healed } }` (an object, not an array). `ExecutionControls.jsx` checked `Array.isArray(res.results)` which was false, falling back to `[res]` (the outer response envelope). Inside the table, `r.testId`, `r.status`, and `r.duration` were undefined, rendering blank cells and `"s"`.
+
+**FILES CHANGED:**
+- `executor/config.mjs` — Path-aware `dotenv.config({ path: path.resolve(__dirname, "../.env") })` with fallback default password.
+- `executor/healing-score.mjs` — Added `getMaxHealingId()` to establish baseline before execution; updated `resolveHealingScore` to filter `hr.id > minHealingId` and order by `hr.id DESC LIMIT 1` to prevent stale historical records from masking current execution state.
+- `executor/executor.mjs` — Captures `maxHealingIdBefore` baseline before steps run, and passes `minHealingId: maxHealingIdBefore` to `resolveHealingScore`.
+- `new-backend/server.js` — Path-aware dotenv configuration.
+- `new-backend/.env` — Created directory-level `.env` with Healenium database credentials.
+- `new-backend/routes/execution.js` — Added `result` property alongside `results` for backwards compatibility.
+- `new-frontend/src/components/ExecutionControls.jsx` — Safe unpacking for both array and object result structures; safe rendering with fallback dashes for undefined values and duration formatted as `${r.duration}s`.
+
+**VERIFICATION EVIDENCE:**
+- Live execution of `TC-WEB-007`:
+  - API Response: `status: "passed", healed: true, healingScore: 0.7921622237411712, message: "Test healed by Healenium (Score: 0.7921622237411712)"`
+  - SQLite Database Record (#73, #75): `healed: 1, healingScore: 0.7921622237411712`
+  - Execution History: Displays `Status: passed`, `Healed: Yes (0.7921622237411712)`
+  - Healing Results: Newest record displays `ID: #75`, `Test ID: TC-WEB-007`, `Status: HEALED`, `Healing Score: 0.7921622237411712`
+  - Normal test `TC-WEB-001` verification: `status: "passed", healed: false, healingScore: null` (correctly NOT marked as healed).
+- Frontend Build: `npm run build` completed cleanly in 8.79s.
+
+---
+
+## 2026-10-12 — Controlled Website UI Redesign: Realistic Small E-Commerce Storefront
+
+**PHASE:** Controlled Website Redesign  
+**OBJECTIVE:** Transform the controlled test website from a synthetic dark test-fixture card mockup into a genuine, traditionally developed small electronics e-commerce storefront ("TechMart Electronics") with zero glassmorphism, while preserving 100% of automated test selectors and Healenium self-healing capabilities.
+
+**FILES CHANGED:**
+- `controlled-website/index.html` — Rebuilt layout as an authentic small electronics retail store with compact header, brand logo & tagline, navigation, cart count indicator, top status alert box, 2-column store layout (search & product catalog on left; customer login & checkout in sidebar), product cards with hardware line illustrations & specs, direct product selector dropdown, and special clearance offers banner. Preserved all test IDs (`#status-message`, `#username`, `#password`, `#login-button`, `#product-select`, `#add-cart-button`, `#search-input`, `#search-button`, `#search-results`, `#checkout-name`, `#checkout-email`, `#checkout-button`, `#add-cart-button-new`).
+- `controlled-website/style.css` — Complete rewrite: light neutral theme (`#F8F9FA` page background, `#FFFFFF` panels/cards, `#212529` dark charcoal typography, `#2563EB` restrained blue accent, `#198754` success green, thin 1px `#DEE2E6` borders, 4–6px border radii). Strictly eliminated all glassmorphism, `backdrop-filter`, blur, gradients, large shadows, glowing neon accents, and emojis.
+- `controlled-website/script.js` — Preserved all automation status message strings and event bindings for TC-WEB-001 through TC-WEB-007; added dynamic cart count increment on Add to Cart and reset on Order Placed; synchronized product card quick-add buttons with `#product-select` and `#add-cart-button`.
+
+**TEST VERIFICATION RESULTS:**
+- Live execution via real Selenium Chrome WebDriver against `http://localhost:8080/index.html`:
+  - `TC-WEB-001` (Page Load Verification): PASSED (Duration: 20.61s)
+  - `TC-WEB-002` (User Authentication): PASSED (Duration: 2.98s)
+  - `TC-WEB-003` (Product Dropdown Selection): PASSED (Duration: 1.42s)
+  - `TC-WEB-004` (Add Product to Cart): PASSED (Duration: 1.64s)
+  - `TC-WEB-005` (Catalog Search Query): PASSED (Duration: 1.73s)
+  - `TC-WEB-006` (Checkout Order Form): PASSED (Duration: 1.98s)
+  - `TC-WEB-007` (Self-Healing Target Test): PASSED (Duration: 15.57s)
+  - `TC-WEB-008` (Intentional Failure Test): FAILED as intentionally expected (Duration: 21.30s, element not found timeout)
+
+---
+
+## 2026-10-11 — Frontend UI Redesign: Engineering Dashboard
+
+**PHASE:** UI/UX Redesign  
+**OBJECTIVE:** Replace dark glassmorphism SaaS template with a professional, light-themed QA engineering dashboard.
+
+**FILES CHANGED:**
+- `new-frontend/src/index.css` — Complete rewrite: light neutral theme (#F4F6F8 background, solid white panels, dark charcoal text), narrow sidebar layout, compact metrics, restrained blue accent, semantic status colors (green/red/amber), thin borders, 4–8px radii. Removed all glassmorphism, backdrop-filter, gradients, glows, and purple AI accents.
+- `new-frontend/src/App.jsx` — Replaced horizontal navbar with narrow left sidebar navigation. Navigation items rendered from data array. Same routing, state management, and API calls preserved.
+- `new-frontend/src/components/Overview.jsx` — Expanded from 4 to 6 compact metric cards: Total Executions, Passed, Failed, Pass Rate, Healed, Avg Duration. Uses CSS variables for status colors.
+- `new-frontend/src/components/ExecutionControls.jsx` — Updated to use CSS variables and alert classes. Same execution logic and API calls preserved.
+- `new-frontend/src/components/RiskRanking.jsx` — Updated colors to CSS variables. Same data binding and AI prediction rendering preserved.
+- `new-frontend/src/components/HealingResults.jsx` — Updated colors to CSS variables. Same healing data filtering preserved.
+- `new-frontend/src/components/TestDefinitions.jsx` — Updated colors to CSS variables. Same form handling and test definition management preserved.
+- `new-frontend/src/components/ExecutionHistory.jsx` — Updated colors to CSS variables. Same search filtering and history rendering preserved.
+
+**WHAT WAS IMPLEMENTED:**
+- Light neutral page background (#F4F6F8) with solid white content panels
+- Dark navy sidebar with clear active state indication
+- Compact, readable data tables with sticky headers
+- Restrained blue accent (#2563EB) for primary actions
+- Semantic status colors: green for passed, red for failed, amber for warnings, purple for healed
+- Small corner radii (4–8px), thin borders, minimal shadows
+- System font stack (Inter) with consistent 13–14px body text
+- Responsive layout with sidebar collapse at 768px
+
+**WHAT WAS NOT CHANGED:**
+- Backend, API endpoints, database schema
+- API service layer (services/api.js)
+- main.jsx, index.html, vite.config.js, package.json
+- Any backend, AI pipeline, executor, or test definition files
+
+**BUILD RESULT:** `npm run build` — ✓ built successfully, no errors.
+
+---
+
 ## 2026-10-08 — Phase 0: Old Repository Study + New Project Setup
 
 **PHASE:** 0  

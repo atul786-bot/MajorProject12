@@ -114,7 +114,8 @@ router.post("/", async (req, res) => {
 
     res.json({
       message: "Selected test execution completed",
-      results: results.length === 1 ? results[0] : results
+      results: results.length === 1 ? results[0] : results,
+      result: results.length > 0 ? results[0] : null
     });
   } catch (err) {
     res.status(500).json({

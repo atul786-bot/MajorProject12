@@ -16,23 +16,23 @@ export default function ExecutionHistory({ history }) {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h3 className="card-title" style={{ margin: 0 }}><Database size={20} className="text-cyan-400" /> Complete Execution History Log</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+        <h3 className="card-title" style={{ margin: 0 }}><Database size={16} /> Execution History</h3>
         
-        <div style={{ position: 'relative', width: '250px' }}>
+        <div style={{ position: 'relative', width: '220px' }}>
           <input
             type="text"
             placeholder="Search history..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            style={{ paddingLeft: '2.2rem' }}
+            style={{ paddingLeft: '30px' }}
           />
-          <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+          <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
         </div>
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ color: '#64748b', fontSize: '0.9rem' }}>No execution records found in database.</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No execution records found.</div>
       ) : (
         <div style={{ maxHeight: '480px', overflowY: 'auto' }}>
           <table>
@@ -67,10 +67,10 @@ export default function ExecutionHistory({ history }) {
                     )}
                   </td>
                   <td>{h.priority ? `#${h.priority}` : "-"}</td>
-                  <td style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {h.executedAt ? new Date(h.executedAt).toLocaleString() : "-"}
                   </td>
-                  <td style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{h.message || "-"}</td>
+                  <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{h.message || "-"}</td>
                 </tr>
               ))}
             </tbody>

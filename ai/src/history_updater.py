@@ -1,213 +1,148 @@
-import pandas as pd
+import sys
 from pathlib import Path
 
-from data_adapter import (
-    load_execution_results,
-    convert_to_test_records,
-)
-from data_loader import load_data
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import pandas as pd
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
-HISTORY_PATH = (
-    PROJECT_ROOT
-    / "data"
-    / "raw"
-    / "test_execution_history.csv"
-)
+from data_adapter import load_m3_execution_history
 
 
 def build_historical_records():
-    """Convert completed automation results into historical records."""
+    """
+    Consume and validate the verified M3 execution history.
 
-    history = load_data()
+    The authoritative M3 CSV is read-only for this pipeline step.
+    No records are appended to the synthetic training dataset.
+    """
 
-    execution_data = load_execution_results()
+    rows = load_m3_execution_history()
 
-    current_tests = convert_to_test_records(
-        execution_data
-    )
+    if not rows:
+        print("No M3 execution history records found.")
+        return pd.DataFrame()
 
-    # Keep only the latest execution for each test ID.
-    # test-results.json contains accumulated runtime history,
-    # but the feedback loop should process only the latest
-    # current execution of each test.
-    latest_tests = {}
+    required_columns = {
+        "testId",
+        "status",
+        "duration",
+        "healed",
+        "healingScore",
+        "timestamp",
+    }
 
-    for test in current_tests:
-        test_id = test["test_id"]
-        existing = latest_tests.get(test_id)
+    missing_columns = required_columns.difference(rows[0].keys())
 
-        if existing is None or str(test.get("timestamp", "")) > str(existing.get("timestamp", "")):
-            latest_tests[test_id] = test
-
-    current_tests = list(latest_tests.values())
-
-    print(
-        f"Current execution records: "
-        f"{len(execution_data.get('tests', []))}"
-    )
-
-    print(
-        f"Unique latest test records: "
-        f"{len(current_tests)}"
-    )
-
-    if "timestamp" not in history.columns:
-        history["timestamp"] = ""
-
-    new_records = []
-
-    for test in current_tests:
-
-        test_id = test["test_id"]
-
-        execution_timestamp = test["timestamp"]
-
-        if not execution_timestamp:
-            raise ValueError(
-                f"Execution timestamp not found for {test_id}."
-            )
-
-        # Normalize the automation status.
-        current_status = (
-            str(test["status"])
-            .strip()
-            .lower()
+    if missing_columns:
+        raise ValueError(
+            "M3 execution history is missing required columns: "
+            + ", ".join(sorted(missing_columns))
         )
 
-        # Only actual execution outcomes are allowed
-        # to become training records.
-        if current_status == "excluded":
-            print(
-                f"Skipping {test_id}: "
-                "execution was excluded and will not "
-                "be added to historical training data."
+    valid_statuses = {
+        "passed",
+        "failed",
+        "excluded",
+    }
+
+    for row in rows:
+        test_id = str(row["testId"]).strip()
+        status = str(row["status"]).strip().lower()
+
+        if not test_id:
+            raise ValueError(
+                "M3 execution history contains a record without testId."
             )
+
+        if status not in valid_statuses:
+            raise ValueError(
+                f"Unsupported status for {test_id}: {row['status']}"
+            )
+
+        if row["timestamp"] is None:
+            raise ValueError(
+                f"Timestamp field is missing for {test_id}."
+            )
+
+    # Duplicate protection.
+    #
+    # Only non-empty timestamps can form a reliable
+    # testId/timestamp execution key.
+    #
+    # Empty timestamps are preserved exactly as supplied
+    # by M3 and are not treated as duplicates.
+    seen = set()
+    duplicates = []
+
+    for row in rows:
+        test_id = str(row["testId"])
+        timestamp = str(row["timestamp"]).strip()
+
+        if not timestamp:
             continue
 
-        if current_status not in {"passed", "failed"}:
-            raise ValueError(
-                f"Unsupported test status for {test_id}: "
-                f"{test['status']}. "
-                f"Expected passed, failed, or excluded."
-            )
-
-        # Prevent processing the same execution twice.
-        test_already_processed = (
-            (history["test_id"].astype(str) == str(test_id))
-            &
-            (
-                history["timestamp"].astype(str)
-                == str(execution_timestamp)
-            )
-        ).any()
-
-        if test_already_processed:
-            print(
-                f"Skipping {test_id}: "
-                "this execution has already been processed."
-            )
-            continue
-
-        test_history = history[
-            history["test_id"] == test_id
-        ]
-
-        if test_history.empty:
-            print(
-                f"Skipping {test_id}: "
-                "no historical data found."
-            )
-            continue
-
-        execution_count = len(test_history)
-
-        failure_count = int(
-            test_history["next_run_failed"].sum()
+        key = (
+            test_id,
+            timestamp,
         )
 
-        avg_duration = round(
-            test_history["avg_duration"].mean(),
-            3
-        )
-
-        recent_history = test_history.tail(5)
-
-        recent_failures = int(
-            recent_history["next_run_failed"].sum()
-        )
-
-        healed_count = round(
-            test_history["healed_count"].mean(),
-            3
-        )
-
-        last_status = (
-            str(test_history.iloc[-1]["last_status"])
-            .strip()
-            .lower()
-        )
-
-        if last_status not in {"passed", "failed"}:
-            raise ValueError(
-                f"Invalid historical last_status for "
-                f"{test_id}: {last_status}."
-            )
-
-        # Actual current execution outcome becomes
-        # the target for the next prediction.
-        if current_status == "failed":
-            next_run_failed = 1
+        if key in seen:
+            duplicates.append(key)
         else:
-            next_run_failed = 0
+            seen.add(key)
 
-        new_records.append({
-            "test_id": test_id,
-            "execution_count": execution_count,
-            "failure_count": failure_count,
-            "avg_duration": avg_duration,
-            "recent_failures": recent_failures,
-            "healed_count": healed_count,
-            "last_status": last_status,
-            "next_run_failed": next_run_failed,
-            "timestamp": execution_timestamp,
-        })
+    if duplicates:
+        print(
+            "Duplicate execution-history keys detected: "
+            f"{len(duplicates)}"
+        )
+    else:
+        print("Duplicate execution-history protection: PASS")
 
-    return pd.DataFrame(new_records)
+    # Excluded executions are not treated as pass/fail
+    # training outcomes.
+    excluded_count = sum(
+        str(row["status"]).strip().lower() == "excluded"
+        for row in rows
+    )
+
+    if excluded_count:
+        print(
+            f"Excluded executions found: {excluded_count}. "
+            "They are not treated as pass/fail training outcomes."
+        )
+    else:
+        print(
+            "Excluded-status handling: PASS "
+            "(no excluded records in the M3 history)."
+        )
+
+    print(
+        "M3 history consumption validated successfully. "
+        f"Rows consumed: {len(rows)}"
+    )
+
+    # Keep the existing pipeline contract:
+    # run_ai_pipeline.py expects a DataFrame.
+    return pd.DataFrame(rows)
 
 
 def append_historical_records(records):
-    """Append new execution records to historical data."""
+    """
+    Preserve the existing pipeline interface.
 
-    if records.empty:
-        print("No new historical records to add.")
+    Real M3 history is authoritative and read-only, so this
+    function intentionally does not append anything to the
+    synthetic dataset.
+    """
+
+    if records is None or records.empty:
+        print("No historical records to process.")
         return
 
-    history = load_data()
-
-    if "timestamp" not in history.columns:
-        history["timestamp"] = ""
-
-    updated_history = pd.concat(
-        [history, records],
-        ignore_index=True,
-    )
-
-    updated_history.to_csv(
-        HISTORY_PATH,
-        index=False,
-    )
-
     print(
-        f"Historical data updated. "
-        f"Added {len(records)} records."
-    )
-
-    print(
-        f"Total historical records: "
-        f"{len(updated_history)}"
+        "Real M3 history is authoritative; "
+        "no historical records were appended or modified."
     )
 
 
@@ -215,14 +150,5 @@ if __name__ == "__main__":
 
     records = build_historical_records()
 
-    print("\nNew Historical Records:")
-
-    if records.empty:
-        print("No new records generated.")
-
-    else:
-        print(
-            records.to_string(index=False)
-        )
-
-        append_historical_records(records)
+    print("\nM3 History Consumption:")
+    print(f"Rows consumed: {len(records)}")

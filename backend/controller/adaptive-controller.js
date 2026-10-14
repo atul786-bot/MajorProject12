@@ -2,10 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const { pathToFileURL } = require("url");
 const db = require("../database");
+const testDefinitions = require("../data/test-definitions");
 
 const AI_OUTPUT_PATH = path.resolve(
     __dirname,
-    "../../ai/data/processed/prioritized_tests.json"
+    "../../ai/data/adaptive/prioritized_tests.json"
 );
 
 async function loadExecutor() {
@@ -28,15 +29,40 @@ function loadPredictions() {
         fs.readFileSync(AI_OUTPUT_PATH, "utf-8")
     );
 
-    return data.tests ?? [];
+    return Array.isArray(data.tests) ? data.tests : [];
 }
 
 function selectTests() {
     return loadPredictions()
-        .filter((test) => test.risk_level === "HIGH")
+        .slice()
         .sort((a, b) => a.priority - b.priority);
 }
 
+function isCompleteTestDefinition(testDefinition) {
+    return Boolean(
+        testDefinition &&
+        typeof testDefinition.testId === "string" &&
+        testDefinition.testId.trim() !== "" &&
+        typeof testDefinition.name === "string" &&
+        testDefinition.name.trim() !== "" &&
+        typeof testDefinition.targetUrl === "string" &&
+        testDefinition.targetUrl.trim() !== "" &&
+        typeof testDefinition.description === "string" &&
+        Array.isArray(testDefinition.steps) &&
+        testDefinition.steps.length > 0
+    );
+}
+
+/*
+ * Adaptive execution path.
+ *
+ * M2 prioritized output
+ * -> resolve Test Definition
+ * -> M1 dynamic executor
+ * -> SQLite history
+ *
+ * Missing Test Definitions are reported without invoking M1.
+ */
 async function runSelectedTests() {
     const selectedTests = selectTests();
 
@@ -44,45 +70,56 @@ async function runSelectedTests() {
         return [];
     }
 
-    const selectedIds = selectedTests.map(
-        (test) => test.test_id
-    );
-
-    const { executeSelectedTests } = await loadExecutor();
-
-    const executionResults =
-        await executeSelectedTests(selectedIds);
-
-    const predictionById = new Map(
-        selectedTests.map((test) => [
-            test.test_id,
-            test
-        ])
-    );
-
+    const executor = await loadExecutor();
     const results = [];
 
-    for (const executionResult of executionResults) {
-        const prediction = predictionById.get(
-            executionResult.testId
+    for (const prediction of selectedTests) {
+        const testId = prediction.test_id;
+
+        const testDefinition = testDefinitions.find(
+            (test) => test.testId === testId
         );
 
-        if (!prediction) {
+        if (!isCompleteTestDefinition(testDefinition)) {
+            results.push({
+                testId,
+                status: "unresolved",
+                message:
+                    `Test Definition not found or incomplete for adaptive execution: ${testId}`,
+                failureProbability:
+                    prediction.failure_probability,
+                riskLevel:
+                    prediction.risk_level,
+                prediction:
+                    prediction.prediction,
+                priority:
+                    prediction.priority
+            });
+
             continue;
         }
 
+        const executionResult =
+            await executor.executeDynamicTest(testDefinition);
+
         const result = {
-            ...executionResult,
-            duration: executionResult.duration ?? null,
-            healed: executionResult.healed ?? false,
+            testId: executionResult.testId,
+            status: executionResult.status,
+            duration: executionResult.duration,
+            healed: executionResult.healed,
+            healingScore: executionResult.healingScore,
+            timestamp: executionResult.timestamp,
             message:
                 executionResult.error ??
-                `Selected test execution completed with status: ${executionResult.status}`,
+                `Adaptive test execution completed with status: ${executionResult.status}`,
             failureProbability:
                 prediction.failure_probability,
-            riskLevel: prediction.risk_level,
-            prediction: prediction.prediction,
-            priority: prediction.priority
+            riskLevel:
+                prediction.risk_level,
+            prediction:
+                prediction.prediction,
+            priority:
+                prediction.priority
         };
 
         db.prepare(`
@@ -91,25 +128,29 @@ async function runSelectedTests() {
                 status,
                 duration,
                 healed,
+                healingScore,
                 message,
                 failureProbability,
                 riskLevel,
                 prediction,
                 priority,
-                executedAt
+                executedAt,
+                timestamp
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             result.testId,
             result.status,
             result.duration,
             result.healed ? 1 : 0,
+            result.healingScore,
             result.message,
             result.failureProbability,
             result.riskLevel,
             result.prediction,
             result.priority,
-            new Date().toISOString()
+            new Date().toISOString(),
+            result.timestamp
         );
 
         results.push(result);
@@ -118,7 +159,72 @@ async function runSelectedTests() {
     return results;
 }
 
+/*
+ * Selected Test Definition execution path.
+ *
+ * Test Definition -> M1 dynamic executor -> Selenium -> result -> SQLite
+ *
+ * This path intentionally does NOT depend on M2 prioritized_tests.json.
+ */
+async function runSelectedTest(testId) {
+    const testDefinition = testDefinitions.find(
+        (test) => test.testId === testId
+    );
+
+    if (!testDefinition) {
+        throw new Error(
+            `Test definition not found: ${testId}`
+        );
+    }
+
+    const { executeDynamicTest } = await loadExecutor();
+
+    const executionResult =
+        await executeDynamicTest(testDefinition);
+
+    const result = {
+        ...executionResult,
+        message:
+            executionResult.error ??
+            `Selected test execution completed with status: ${executionResult.status}`
+    };
+
+    db.prepare(`
+        INSERT INTO execution_history (
+            testId,
+            status,
+            duration,
+            healed,
+            healingScore,
+            message,
+            failureProbability,
+            riskLevel,
+            prediction,
+            priority,
+            executedAt,
+            timestamp
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+        result.testId,
+        result.status,
+        result.duration,
+        result.healed ? 1 : 0,
+        result.healingScore,
+        result.message,
+        null,
+        null,
+        null,
+        null,
+        new Date().toISOString(),
+        result.timestamp
+    );
+
+    return result;
+}
+
 module.exports = {
     selectTests,
-    runSelectedTests
+    runSelectedTests,
+    runSelectedTest
 };

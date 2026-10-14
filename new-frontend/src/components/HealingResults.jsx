@@ -1,18 +1,18 @@
 import React from "react";
-import { ShieldCheck, Wrench } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 export default function HealingResults({ history }) {
   const healedRecords = (history || []).filter((h) => h.healed === 1 || h.healed === true);
 
   return (
     <div className="card">
-      <h3 className="card-title"><ShieldCheck size={20} className="text-purple-400" /> Healenium Self-Healing Results</h3>
-      <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '1rem' }}>
-        Automatic element locator recovery and self-healing score data captured via Healenium proxy.
+      <h3 className="card-title"><ShieldCheck size={16} /> Healing Results</h3>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '10px' }}>
+        Automatic element locator recovery and self-healing scores captured via Healenium proxy.
       </p>
 
       {healedRecords.length === 0 ? (
-        <div style={{ color: '#64748b', fontSize: '0.9rem', padding: '1rem 0' }}>
+        <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '8px 0' }}>
           No self-healed executions recorded yet. Execute <strong>TC-WEB-007</strong> to trigger Healenium self-healing.
         </div>
       ) : (
@@ -33,9 +33,9 @@ export default function HealingResults({ history }) {
                 <td>#{h.id}</td>
                 <td><strong>{h.testId}</strong></td>
                 <td><span className="badge-status badge-healed">HEALED</span></td>
-                <td><strong style={{ color: '#c084fc' }}>{h.healingScore || "1.00"}</strong></td>
-                <td style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{h.message}</td>
-                <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{new Date(h.executedAt).toLocaleString()}</td>
+                <td><strong style={{ color: 'var(--color-healed)' }}>{h.healingScore || "1.00"}</strong></td>
+                <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{h.message}</td>
+                <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{new Date(h.executedAt).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>

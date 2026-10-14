@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+# Ensure ai/src is on the Python path so bare imports work
+# regardless of the working directory.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from feature_builder import build_features
 from prioritizer import prioritize_test_suite
 from prediction_output import save_predictions

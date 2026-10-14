@@ -99,11 +99,11 @@ All new files will be created inside the workspace root alongside the old reposi
 
 | Component              | Status               | Notes                                    |
 |------------------------|----------------------|------------------------------------------|
-| Controlled Website     | VERIFIED             | Phase 1 — Served live on port 8080 (http://localhost:8080/index.html) |
+| Controlled Website     | VERIFIED             | Redesigned practical electronics storefront (TechMart Electronics). Light theme, zero glassmorphism, 100% test selectors preserved. Verified live via Selenium (TC-WEB-001 through 008) on port 8080. |
 | Test Definitions       | VERIFIED             | Phase 2 — TC-WEB-001 through TC-WEB-008 in test-definitions/test-definitions.json |
 | Test Executor          | VERIFIED             | Phase 3 — Real Selenium Chrome WebDriver execution verified live |
 | Selenium Integration   | VERIFIED             | Phase 3 — Chrome headless/windowed execution verified live |
-| Healenium Integration  | VERIFIED             | Phase 5 — Real Healenium self-healing empirically verified (Stage A baseline uid: 82f1258f6cf0737091103c4676e55dc6 -> Stage B healing_id: c3d1970d03bc1d30d46547927cb3c01c, score: 0.9715, healed=true) |
+| Healenium Integration  | VERIFIED             | Real Healenium self-healing empirically verified. Fixed .env DB auth resolution and baseline ID filtering in executor; TC-WEB-007 runtime healing verified live (Score: 0.7922, healed=true, records #73 & #75). |
 | SQLite Database        | VERIFIED             | Phase 4 — 25 real execution history records stored in data/db/execution-history.db |
 | Backend API            | VERIFIED             | Phase 4 — Express.js server running live on port 3000 with REST endpoints |
 | AI Pipeline            | VERIFIED             | Phase 7 — LogisticRegression pipeline in new-ai/ computing real failure probabilities |

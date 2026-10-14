@@ -89,6 +89,7 @@ c:\Users\atulk\OneDrive\Desktop\dummy member1\
 ```
 ┌──────────────────────────────────────────────┐
 │           Controlled Test Website             │
+│   TechMart Electronics Retail Storefront     │
 │     (index.html / style.css / script.js)     │
 │      Served via http-server on port 8080      │
 └────────────────────┬─────────────────────────┘
@@ -177,8 +178,8 @@ c:\Users\atulk\OneDrive\Desktop\dummy member1\
 - **Healenium Proxy:** `http://localhost:8085`
 - **PostgreSQL:** host=localhost, port=5432, user=healenium_user, db=healenium
 - Healing is detected by comparing the locator used by the test vs. the actual element attribute found
-- Healing score is retrieved from PostgreSQL `healenium.healing_result` table
-- TC-WEB-007: change `id="add-cart-button"` → `id="add-cart-button-new"` and verify Healenium heals
+- Healing score is retrieved from PostgreSQL `healenium.healing_result` table with baseline ID filtering to ensure current-run attribution
+- TC-WEB-007: requests `id="add-cart-button-old"`, target has `id="add-cart-button-new"`; Healenium proxy heals at runtime and records score in Postgres
 
 ---
 

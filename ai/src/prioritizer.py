@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from predict import load_model, prepare_input, predict_failure, classify_risk
 from prediction_output import save_predictions
 from feature_builder import build_features
